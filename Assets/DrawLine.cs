@@ -56,14 +56,15 @@ public class DrawLine : MonoBehaviour
             meshFilter.mesh = mesh;
             l.Clear();
         }
-        if (Input.GetMouseButton(0))
+        if (Input.GetMouseButton(0) && targetObject != null)
         {
             var pos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 
             //既にあるオブジェクトに当たりそうならそこで生成を辞める
             if (Physics2D.CircleCast(pos, 0.2f, Vector2.zero))
             {
-                Debug.Log("Hit");
+                Finish();
+                return;
             }
 
             l.Add(pos);
@@ -71,16 +72,22 @@ public class DrawLine : MonoBehaviour
         }
         if (Input.GetMouseButtonUp(0) && targetObject != null)
         {
-            if (mesh.vertexCount < 4)
-            {
-                Destroy(targetObject);
-            }
-            var rigibody = targetObject.AddComponent<Rigidbody2D>();
-            rigibody.useAutoMass = true;
-            var polyColliderPos = CreateMeshToPolyCollider(mesh);
-            var polyCollider = targetObject.AddComponent<PolygonCollider2D>();
-            polyCollider.SetPath(0,polyColliderPos.ToArray());
+            Finish();
         }
+    }
+
+    private void Finish()
+    {
+        if (mesh.vertexCount < 4)
+        {
+            Destroy(targetObject);
+        }
+        var rigibody = targetObject.AddComponent<Rigidbody2D>();
+        rigibody.useAutoMass = true;
+        var polyColliderPos = CreateMeshToPolyCollider(mesh);
+        var polyCollider = targetObject.AddComponent<PolygonCollider2D>();
+        polyCollider.SetPath(0,polyColliderPos.ToArray());
+        targetObject = null;
     }
 
     private List<Vector2> CreateMeshToPolyCollider(Mesh mesh)
