@@ -1,37 +1,33 @@
-﻿using System;
-using UnityEngine;
-using System.Collections;
+﻿using UnityEngine;
 using System.Collections.Generic;
-using System.Linq;
-using GameUtil;
 
 public class DrawLine : MonoBehaviour
 {
     [SerializeField] private float width;
     private GameObject targetObject;
     private Mesh mesh;
-    private List<Vector2> l = new List<Vector2>();
+    private List<Vector2> vlist = new List<Vector2>();
 
-    private void CreateMesh(Mesh mesh,IEnumerable<Vector2> vlist)
+    private void CreateMesh(Mesh mesh,List<Vector2> vlist)
     {
         mesh.Clear();
-        var vCnt = vlist.Count();
+
+        var vCnt = vlist.Count;
         var vertices = new List<Vector3>();
-        var indices = new List<int>();
         for (int i = 0; i < vCnt-1; i++)
         {
-            var currentPos = vlist.ElementAt(i);
-            var nextPos = vlist.ElementAt(i + 1);
-            //今と、一つ先のベクトルから、向いている方向を得る
-            var vec = currentPos - nextPos;
+            var currentPos = vlist[i];
+            var nextPos = vlist[i + 1];
+            var vec = currentPos - nextPos;//今と、一つ先のベクトルから、進行方向を得る
             if(vec.magnitude < 0.01f)continue;  //あまり頂点の間が空いてないのであればスキップする
-            var v = vec.normalized * width;
+            var v =  new Vector2(-vec.y,vec.x).normalized * width; //90度回転させてから正規化*widthで左右への幅ベクトルを得る
 
             //指定した横幅に広げる
-            vertices.Add(new Vector3(currentPos.x + v.y,currentPos.y - v.x));
-            vertices.Add(new Vector3(currentPos.x - v.y,currentPos.y + v.x));
+            vertices.Add(currentPos-v);
+            vertices.Add(currentPos+v);
         }
 
+        var indices = new List<int>();
         for (int index = 0; index < vertices.Count-2; index+=2)
         {
             indices.Add(index);
@@ -54,7 +50,7 @@ public class DrawLine : MonoBehaviour
             var meshFilter = targetObject.AddComponent<MeshFilter>();
             mesh = new Mesh();
             meshFilter.mesh = mesh;
-            l.Clear();
+            vlist.Clear();
         }
         if (Input.GetMouseButton(0) && targetObject != null)
         {
@@ -67,8 +63,8 @@ public class DrawLine : MonoBehaviour
                 return;
             }
 
-            l.Add(pos);
-            CreateMesh(mesh,l);
+            vlist.Add(pos);
+            CreateMesh(mesh,vlist);
         }
         if (Input.GetMouseButtonUp(0) && targetObject != null)
         {
@@ -81,6 +77,7 @@ public class DrawLine : MonoBehaviour
         if (mesh.vertexCount < 4)
         {
             Destroy(targetObject);
+            return;
         }
         var rigibody = targetObject.AddComponent<Rigidbody2D>();
         rigibody.useAutoMass = true;
@@ -93,11 +90,13 @@ public class DrawLine : MonoBehaviour
     private List<Vector2> CreateMeshToPolyCollider(Mesh mesh)
     {
         var polyColliderPos = new List<Vector2>();
+        //偶数を小さい順に
         for (int index = 0; index < mesh.vertices.Length; index+=2)
         {
             var pos = mesh.vertices[index];
             polyColliderPos.Add(pos);
         }
+        //奇数を大きい順に
         for (int index = mesh.vertices.Length-1; index > 0; index-=2)
         {
             var pos = mesh.vertices[index];
